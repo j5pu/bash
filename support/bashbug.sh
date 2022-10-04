@@ -4,7 +4,7 @@
 #
 # The bug address depends on the release status of the shell.  Versions
 # with status `devel', `alpha', `beta', or `rc' mail bug reports to
-# chet@cwru.edu and, optionally, to bash-testers@cwru.edu.
+# chet.ramey@case.edu and, optionally, to bash-testers@cwru.edu.
 # Other versions send mail to bug-bash@gnu.org.
 #
 # Copyright (C) 1996-2021 Free Software Foundation, Inc.
@@ -26,14 +26,14 @@
 # configuration section:
 #	these variables are filled in by the make target in Makefile
 #
-MACHINE="!MACHINE!"
-OS="!OS!"
-CC="!CC!"
-CFLAGS="!CFLAGS!"
-RELEASE="!RELEASE!"
+MACHINE="x86_64"
+OS="darwin21.6.0"
+CC="gcc"
+CFLAGS="-DARRAY_EXPORT="1" -DCASEMOD_CAPCASE="1" -DCASEMOD_TOGGLECASE="1" -DCHECKWINSIZE_DEFAULT="1" -DDEFAULT_BASHRC="/Users/j5pu/bash/_files/.bashrc" -DDEFAULT_INPUTRC="/Users/j5pu/bash/_files/.inputrc" -DDEFAULT_PATH_VALUE="'/Users/j5pu/bash/_files/bin:/Users/j5pu/bash/_files/custom/bin:/Users/j5pu/bash/_files/generated/bin:/Users/j5pu/bash/_files/generated/color:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'" -DHISTEXPAND_DEFAULT="1" -DHISTCONTROL="erasedups" -DHISTFILE="/Users/j5pu/bash/_files/.bash_history" -DMULTIPLE_COPROCS="1" -DNON_INTERACTIVE_LOGIN_SHELLS="1" -DOPTIMIZE_SEQUENTIAL_ARRAY_ASSIGNMENT="1" -DSSH_SOURCE_BASHRC="1" -DSTANDARD_UTILS_PATH="'/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'" -DSYS_BASH_LOGOUT="'/Users/j5pu/bash/_files/bash_logout'" -DSYS_BASHRC="'/Users/j5pu/bash/_files/bashrc'" -DSYS_INPUTRC="/Users/j5pu/bash/_files/inputrc" -DSYS_PROFILE="/Users/j5pu/bash/_files/profile" -DHISTFILESIZE="-1" -DHISTSIZE="-1" -DHISTSIZE_DEFAULT="-1""
+RELEASE="5.2"
 PATCHLEVEL="!PATCHLEVEL!"
-RELSTATUS="!RELSTATUS!"
-MACHTYPE="!MACHTYPE!"
+RELSTATUS="release"
+MACHTYPE="x86_64-apple-darwin21.6.0"
 
 PATH=/bin:/usr/bin:/usr/local/bin:$PATH
 export PATH
@@ -102,7 +102,7 @@ esac
 BASHTESTERS="bash-testers@cwru.edu"
 
 case "$RELSTATUS" in
-alpha*|beta*|devel*|rc*)	BUGBASH=chet@cwru.edu ;;
+alpha*|beta*|devel*|rc*)	BUGBASH=chet.ramey@case.edu ;;
 *)				BUGBASH=bug-bash@gnu.org ;;
 esac
 
@@ -132,6 +132,10 @@ if [ -z "$DEFEDITOR" ] && [ -z "$EDITOR" ]; then
 		DEFEDITOR=emacs
 	elif [ -x /usr/bin/xemacs ]; then
 		DEFEDITOR=xemacs
+	elif [ -x /usr/bin/vim; then
+		DEFEDITOR=vim
+	elif [ -x /usr/bin/gvim; then
+		DEFEDITOR=gvim
 	elif [ -x /usr/bin/nano ]; then
 		DEFEDITOR=nano
 	elif [ -x /usr/contrib/bin/jove ]; then

@@ -113,3 +113,6 @@ examples/loadables/tty
 examples/loadables/uname
 examples/loadables/unlink
 examples/loadables/whoami
+/builtins/tmpbuiltins.h
+/builtins/tmpbuiltins.c
+/builtins/gen-helpfiles

@@ -1,0 +1,206 @@
+#!/usr/bin/env bash
+
+set -eu
+
+TOP="$(cd "$(dirname "$0")/.."; pwd -P)"
+FILES="${TOP}/_files"
+PREFIX="${TOP}/_build"
+CFLAGS=""
+PATH_BASE="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+export LOADABLE_BUILTINS_PATH="${PREFIX}/lib/bash:"
+
+cd "${TOP}"
+: "
+# Set if not by bash (static): see variables.c for more and dynamic
+EUID
+HOSTNAME
+HOSTTYPE=x86_64
+MACHTYPE=x86_64-apple-darwin21.6.0
+OLDPWD
+OSTYPE=darwin21.6.0
+PPID
+PWD
+SHELL (current_use_shell)
+UID
+"
+
+# Not POSIX:
+#  -l|--login always startup files (.bash_profile if not "sh", otherwise ".profile) (even if not interactive), but not .bashrc
+#  -i   no read startup files, unless "su -su"
+#  "-" and NON_INTERACTIVE_LOGIN_SHELLS then not interactive run startup files (like forcing -l for all): echo | bash -
+# POSIX:
+#  interactive shell only ENV for login and/or interactive, also when "-" (i.e: echo | bash -)
+
+#######################################
+# clean configure and build outputs
+# Arguments:
+#  None
+#######################################
+clean() {
+  make clean &>/dev/null || true
+  make distclean &>/dev/null || true
+}
+
+#######################################
+# description
+# Globals:
+#   DEFAULTS
+#   PREFIX
+# Arguments:
+#  None
+#######################################
+defaults() {
+  DEFAULTS=(
+    ARRAY_EXPORT  # export indexed arrays to processes
+    CASEMOD_CAPCASE  # ["capcase"]: (declare -c).
+    CASEMOD_TOGGLECASE  # case-toggling operators (~[~])
+    CHECKWINSIZE_DEFAULT  # ["checkwinsize"]
+    DEFAULT_BASHRC="${FILES}/.bashrc"
+    DEFAULT_INPUTRC="${FILES}/.inputrc"
+    # for enable -f, will be set if BASH_LOADABLES_PATH unset (gives segmentation fault)
+#    DEFAULT_LOADABLE_BUILTINS_PATH="'${PREFIX}/lib/bash:/usr/local/lib/bash'"
+    # TODO: Do it based on OS.
+    # will set if PATH is unset
+    # NOTE: does not work
+    DEFAULT_PATH_VALUE="'${FILES}/bin:${FILES}/custom/bin:${FILES}/generated/bin:${FILES}/generated/color:${PATH_BASE}'"
+    HISTEXPAND_DEFAULT  # to enable when shell is interactive
+    HISTCONTROL="erasedups"
+    HISTFILE="${FILES}/.bash_history"
+#    HISTTIMEFORMAT="[%F %T]"
+    MULTIPLE_COPROCS  # enable code that implements multiple "coprocs" executing simultaneously
+    NON_INTERACTIVE_LOGIN_SHELLS  # if first argument "-", runs also startup files /etc/profile, .bash_profile, .profile (not for posix)
+    OPTIMIZE_SEQUENTIAL_ARRAY_ASSIGNMENT  # optimize for sequential array assignment when using indexed arrays
+#    PROMPT="{\[\e[32m\]\u\[\e[m\]@\[\e[36m\]\h\[\e[m\]:\W_\$?}$ "
+#    SPROMPT="{\[\e[32m\]>\[\e[m\]} "
+    SSH_SOURCE_BASHRC  # to try to check whether it's being run by sshd and source the .bashrc
+    # NOTE: does not work
+    STANDARD_UTILS_PATH="'${PATH_BASE}'"  # `command -p'
+    SYS_BASH_LOGOUT="'${FILES}/bash_logout'"
+    SYS_BASHRC="'${FILES}/bashrc'"  # works when no posix mode
+    SYS_INPUTRC="${FILES}/inputrc"
+    SYS_PROFILE="${FILES}/profile"
+  )
+  NEGATIVES=(
+    HISTFILESIZE  # env var HISTSIZE
+    HISTSIZE
+    HISTSIZE_DEFAULT
+  )
+}
+
+#######################################
+# enable loadable builtins
+# Arguments:
+#  None
+#######################################
+loadable() {
+  enable -f mypid enable_mypid
+  enable -f truefalse false
+  enable -f truefalse true
+  for i in accept basename csv cut dirname dsv fdflags finfo getconf \
+    head id ln logname mkdir mkfifo mktemp pathchk print printenv \
+    push realpath rm rmdir seq setpgid sleep stat strftime sync tee tty uname unlink whoami; do
+      enable -f "$i" "$i"
+  done
+}
+
+#######################################
+# enable options
+# Globals:
+#   ENABLE
+# Arguments:
+#  None
+#######################################
+options() {
+  OPTIONS=(
+    --enable-alias  # ALIAS ["expand_aliases"]
+    --enable-alt-array-implementation  # ALT_ARRAY_IMPLEMENTATION: prioritizes speed (O(1) access) over space
+    --enable-arith-for-command  # ARITH_FOR_COMMAND: for (( init; test; step )) do list; done
+    --enable-array-variables  # ARRAY_VARS
+    --enable-brace-expansion  # BRACE_EXPANSION ["braceexpand"]: (foo{a,b} -> fooa foob
+    --enable-casemod-attributes  # CASEMOD_ATTRS: case-modifying variable attributes; variables modified on assignment
+    --enable-casemod-expansions  # CASEMOD_EXPANSIONS: case-modifying word expansions [a-z] -> [A-Z]
+    --enable-command-timing  # COMMAND_TIMING: time pipelines, functions and builtins
+    --enable-cond-command  # COND_COMMAND: [[...]]
+    --enable-cond-regexp  # COND_REGEXP: [[ =~]]
+    --enable-coprocesses  # COPROCESS_SUPPORT; "coproc" reserved word
+    --enable-debugger  # DEBUGGER: compile in some features used only by the bash debugger
+    --enable-direxpand-default  # DIRCOMPLETE_EXPAND_DEFAULT ["direxpand"]:
+    --enable-directory-stack  # PUSHD_AND_POPD
+    --enable-disabled-builtins  # DISABLED_BUILTINS
+    --enable-dparen-arithmetic  # DPAREN_ARITHMETIC: ((...))
+    --enable-extended-glob-default  # EXTGLOB_DEFAULT ["extglob"]: [*+@?!](patlist)
+    --enable-function-import  # FUNCTION_IMPORT: allow functions to be imported from the environment
+    --enable-glob-asciiranges-default  # GLOBASCII_DEFAULT ["globasciiranges"]
+    --enable-help-builtin  # HELP_BUILTIN
+    --enable-history  # HISTORY
+    --enable-job-control  # JOB_CONTROL
+    --enable-largefile
+    --enable-mem-scramble  # MEMSCRAMBLE
+    --enable-multibyte  # NO_MULTIBYTE_SUPPORT, oppsoite of --enable-multibyte
+    --enable-net-redirections  # NETWORK_REDIRECTIONS: open /dev/(tcp|udp)/host/port socket connections
+    --enable-process-substitution  # PROCESS_SUBSTITUTION; "<(file)"
+    --enable-progcomp  # PROGRAMMABLE_COMPLETION ["progcomp"]
+    --enable-prompt-string-decoding  # PROMPT_STRING_DECODE: expand \[
+    --enable-readline  # READLINE
+    --enable-restricted  # RESTRICTED_SHELL
+    --enable-select  # SELECT_COMMAND
+    --enable-separate-helpfiles
+    --enable-strict-posix-default  # STRICT_POSIX
+    --enable-translatable-strings  # TRANSLATABLE_STRINGS: support for $"..." translatable strings
+    --enable-threads=posix
+    --enable-xpg-echo-default  # DEFAULT_ECHO_TO_XPG (interpret \ by default)
+    --with-included-gettext
+  )
+}
+
+#######################################
+# description
+# Arguments:
+#  None
+#######################################
+main() {
+  local cflags=() command=() dry=false prefix=(--prefix="${PREFIX}")
+  options
+  for arg; do
+    case "${arg}" in
+      --dry-run) dry=true ;;
+      clean | loadable) "${arg}"; exit ;;
+      posix) OPTIONS+=(--enable-strict-posix-default) ;;   # STRICT_POSIX
+      prefix=*) PREFIX="${arg#*=}"; prefix+=(--prefix "${arg#*=}") ;;
+      HISTFILESIZE | HISTSIZE | HISTSIZE_DEFAULT ) cflags+=("-D${arg}=\"-1\"") ;;
+      ARRAY_EXPORT | CASEMOD_CAPCASE | CASEMOD_TOGGLECASE | CHECKWINSIZE_DEFAULT | \
+        HISTEXPAND_DEFAULT | MULTIPLE_COPROCS | NON_INTERACTIVE_LOGIN_SHELLS | OPTIMIZE_SEQUENTIAL_ARRAY_ASSIGNMENT | \
+        SSH_SOURCE_BASHRC ) cflags+=("-D${arg}=\"1\"") ;;
+      DEFAULT_BASHRC=* | DEFAULT_INPUTRC=* | DEFAULT_LOADABLE_BUILTINS_PATH=* | DEFAULT_PATH_VALUE=* | HISTFILE=* | \
+        HISTCONTROL=* | HISTTIMEFORMAT=* | STANDARD_UTILS_PATH=* | SYS_BASH_LOGOUT=* | SYS_BASHRC=* | SYS_INPUTRC=* | \
+        SYS_PROFILE=* ) cflags+=("-D${arg%=*}=\"${arg#*=}\"") ;;
+      *)
+        echo "unknown argument: ${arg}"
+        exit 1
+        ;;
+    esac
+  done
+
+  options
+  export CFLAGS="${cflags[*]}"
+  command+=(./configure "${prefix[@]}" "${OPTIONS[@]}")
+
+  echo "${command[@]}"
+  echo export CFLAGS="${CFLAGS}"
+  if ! $dry; then
+    "${command[@]}"
+    make install
+    echo "export ENV=${FILES}/bashrc"
+    loadable
+  fi
+}
+
+# With posix, profile/bashrc is not sourced and sources for login and interactive: ENV="${FILES}/bashrc"
+defaults
+
+set -- "$@" "${DEFAULTS[@]}" "${NEGATIVES[@]}"
+
+main "$@"
+
+# TODO: el FPATH, autoload para cargar funciones automaticamente. y METER el VPATH
+#  /Users/j5pu/bash/examples/functions/autoload
