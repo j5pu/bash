@@ -1,5 +1,8 @@
 #  bash
 
+## Build
+Bash variables:
+
 ## [Loadable Builtin Extensions](_build/lib/bash)
 
 To load from `$LOADABLE_BUILTINS_PATH`:
@@ -15,8 +18,6 @@ or, `enable -f "${PREFIX}/lib/bash/realpath" realpath`
 find "${PREFIX}/lib/bash/examples/loadables" -type f -name "*.c" | \
   xargs awk -F '"' '/^struct builtin / { getline; print $2 }'
 ````
-### Interesting to enable
-accept basename csv cut dirname dsv fdflags finfo getconf head hello id ln logname mkdir mkfifo mktemp  necho pathchk print printenv push rm rmdir seq setpgid sleep stat strftime sync tee true false tty uname unlink whoami
 
 ````shell
 enable -f ./mypid enable_mypid
@@ -49,3 +50,32 @@ installation uses:
 is installed if `make install` or symlinked in case of brew.
 
 ### [Configure/Environment Variables](https://github.com/scop/bash-completion/blob/master/doc/configuration.md)
+
+## Bash Variables and helper function
+Bash sets the following variables:
+   * macOS:
+     1. HOSTTYPE=x86_64
+     2. MACHTYPE=x86_64-apple-darwin21.6.0
+     3. OSTYPE=darwin21.6.0
+   * msi, for instance:
+   * Linux:
+     1. HOSTTYPE=x86_64
+     2. MACHTYPE=x86_64-pc-linux-gnu
+     3. OSTYPE=linux-gnu
+
+[config.guess](support/config.guess) is generated when `./configure` and outputs `$MACHTYPE` (`${host_cpu}-${host_vendor}-${host_os}`).
+
+`BASHVERS=5.2; RELSTATUS=release` are hard coded in [configure](configure) script.
+
+[config.sub](support/config.sub) has the list of all architecture/--host alternatives and checks 
+if it is valid and returns the `$MACHTYPE` to use for --host `config.sub x86_64-apple-darwin`, 
+aliases can be used: x86_64, amd64, arm64-*, x86_64-linux, x86_64-apple
+
+GitHub actions has `$RUNNER_ARCH` x86, x64 (x86_64), ARM or ARM64 and `$RUNNER_OS` Linux, macOS, Windows.
+
+
+### CAVEATS
+
+Only files with *.in are used: 
+* config.h.in
+
